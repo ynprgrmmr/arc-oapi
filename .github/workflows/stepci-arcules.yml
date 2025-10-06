@@ -1,0 +1,38 @@
+name: Arcules API StepCI Test
+
+# プッシュやPRで自動実行
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:   # 手動実行も可能
+
+jobs:
+  run-stepci:
+    runs-on: ubuntu-latest
+
+    env:
+      ARCULES_USER: ${{ secrets.ARCULES_USER }}
+      ARCULES_PASS: ${{ secrets.ARCULES_PASS }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: Install StepCI CLI
+        run: npm install -g @stepci/cli
+
+      - name: Run StepCI tests
+        run: stepci run stepci.yml --report html
+
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v3
+        with:
+          name: stepci-report
+          path: report.html

@@ -1,0 +1,36 @@
+name: Arcules API Test
+
+variables:
+  base_url: "https://msapi.jp.arcules.com"
+  username: "${{ env.ARCULES_USER }}"
+  password: "${{ env.ARCULES_PASS }}"
+  token: ""
+
+steps:
+  - name: Get API token
+    run: |
+      curl -s -X POST "$base_url/oauth2/token" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "grant_type=password&username=$username&password=$password" \
+        | jq -r '.access_token' > token.txt
+      echo "TOKEN=$(cat token.txt)" >> $GITHUB_ENV
+
+  - name: Test Organizations API
+    run: |
+      curl -s -H "Authorization: Bearer $TOKEN" "$base_url/api/organizations" | jq .
+
+  - name: Test Devices API
+    run: |
+      curl -s -H "Authorization: Bearer $TOKEN" "$base_url/api/devices" | jq .
+
+  - name: Test Sites API
+    run: |
+      curl -s -H "Authorization: Bearer $TOKEN" "$base_url/api/sites" | jq .
+
+  - name: Test Sequences API
+    run: |
+      curl -s -H "Authorization: Bearer $TOKEN" "$base_url/api/sequences" | jq .
+
+  - name: Test Thumbnails API
+    run: |
+      curl -s -H "Authorization: Bearer $TOKEN" "$base_url/api/thumbnails" | jq .
