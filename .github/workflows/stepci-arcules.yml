@@ -32,6 +32,8 @@ jobs:
       - name: Call Arcules APIs and generate HTML report
         run: |
           TOKEN=${{ steps.get_token.outputs.token }}
+          EMAIL=${{ secrets.ARCULES_EMAIL }}
+          
           if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
             echo "Failed to get token, aborting."
             exit 1
