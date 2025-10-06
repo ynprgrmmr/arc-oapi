@@ -19,11 +19,12 @@ jobs:
       - name: Run StepCI tests in Docker
         run: |
           docker run --rm \
-            -v ${{ github.workspace }}:/tests \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
             -e ARCULES_USER="${{ secrets.ARCULES_USER }}" \
             -e ARCULES_PASS="${{ secrets.ARCULES_PASS }}" \
             ghcr.io/stepci/stepci:latest \
-            run /tests/stepci.yml --report /tests/report.html
+            run stepci.yml --report report.html
 
       - name: Upload HTML report
         uses: actions/upload-artifact@v4
