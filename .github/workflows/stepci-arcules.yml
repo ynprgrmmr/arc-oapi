@@ -1,35 +1,29 @@
 name: Arcules API StepCI Test
 
-# プッシュやPRで自動実行
+# Push / PR / 手動実行でトリガー
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch:   # 手動実行も可能
+  workflow_dispatch:
 
 jobs:
-  run-stepci:
+  run-stepci-docker:
     runs-on: ubuntu-latest
-
-    env:
-      ARCULES_USER: ${{ secrets.ARCULES_USER }}
-      ARCULES_PASS: ${{ secrets.ARCULES_PASS }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "20"
-
-      - name: Install StepCI CLI
-        run: npm install -g @stepci/cli
-
-      - name: Run StepCI tests
-        run: stepci run stepci.yml --report html
+      - name: Run StepCI tests in Docker
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/tests \
+            -e ARCULES_USER="${{ secrets.ARCULES_USER }}" \
+            -e ARCULES_PASS="${{ secrets.ARCULES_PASS }}" \
+            ghcr.io/stepci/stepci:latest \
+            run /tests/stepci.yml --report /tests/report.html
 
       - name: Upload HTML report
         uses: actions/upload-artifact@v4
