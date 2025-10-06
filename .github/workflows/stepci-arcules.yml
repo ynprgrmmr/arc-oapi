@@ -1,4 +1,4 @@
-name: Arcules API Direct Test
+name: Arcules API Audit Report
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-arcules-api:
+  arcules-audit:
     runs-on: ubuntu-latest
 
     steps:
@@ -29,28 +29,35 @@ jobs:
           token=$(echo "$response" | jq -r '.jwtToken')
           echo "token=$token" >> $GITHUB_OUTPUT
 
-      - name: Call Arcules APIs
-        id: call_apis
+      - name: Call Arcules APIs and generate HTML report
         run: |
           TOKEN=${{ steps.get_token.outputs.token }}
-          if [ "$TOKEN" = "null" ] || [ -z "$TOKEN" ]; then
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
             echo "Failed to get token, aborting."
             exit 1
           fi
 
-          echo "<html><body><h1>Arcules API Test Report</h1><ul>" > report.html
+          echo "<html><body><h1>Arcules API Audit Report</h1>" > report.html
 
-          # API エンドポイント一覧
-          for endpoint in "devices" "organizations" "sites" "thumbnails"; do
-            url="https://msapi.jp.arcules.com/v1/$endpoint"
-            status=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" "$url")
-            echo "<li>$endpoint : HTTP $status</li>" >> report.html
+          endpoints=("devices" "organizations" "sites" "thumbnails")
+          for ep in "${endpoints[@]}"; do
+            url="https://msapi.jp.arcules.com/v1/$ep"
+            http_status=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" "$url")
+            echo "<h2>$ep</h2>" >> report.html
+            echo "<p>HTTP Status: $http_status</p>" >> report.html
+
+            if [ "$http_status" -eq 200 ]; then
+              json=$(curl -s -H "Authorization: Bearer $TOKEN" "$url" | jq '.')
+              echo "<pre>$json</pre>" >> report.html
+            else
+              echo "<p><span style='color:red'>Error or not found</span></p>" >> report.html
+            fi
           done
 
-          echo "</ul></body></html>" >> report.html
+          echo "</body></html>" >> report.html
 
       - name: Upload HTML report
         uses: actions/upload-artifact@v4
         with:
-          name: arcules-api-report
+          name: arcules-api-audit-report
           path: report.html
