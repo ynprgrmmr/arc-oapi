@@ -38,7 +38,13 @@ jobs:
           fi
 
           echo "<html><body><h1>Arcules API Audit Report</h1>" > report.html
+          # authentication section
+          echo "<h2>Authentication</h2>" >> report.html
+          echo "<p>Email: $EMAIL</p>" >> report.html
+          echo "<p>Password: ***</p>" >> report.html
+          echo "<p>Status: OK</p>" >> report.html
 
+          # API endpoints section
           endpoints=("devices" "organizations" "sites" "thumbnails")
           for ep in "${endpoints[@]}"; do
             url="https://msapi.jp.arcules.com/v1/$ep"
