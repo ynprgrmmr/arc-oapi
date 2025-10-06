@@ -46,14 +46,30 @@ jobs:
           echo "<p>Password: ***</p>" >> report.html
           echo "<p>Status: OK</p>" >> report.html
 
-          # API endpoints section
-          endpoints=("devices" "organizations" "sites" "thumbnails")
-          for ep in "${endpoints[@]}"; do
+          # devices を先に取得
+          devices_json=$(curl -s -H "Authorization: Bearer $TOKEN" https://msapi.jp.arcules.com/v1/devices)
+          echo "<h2>Devices</h2>" >> report.html
+          echo "<pre>$devices_json</pre>" >> report.html
+
+          # devices の id を使って thumbnails を取得
+          echo "<h2>Thumbnails</h2>" >> report.html
+          device_ids=$(echo "$devices_json" | jq -r '.[].id')
+          for id in $device_ids; do
+            thumbnail_url="https://msapi.jp.arcules.com/v1/thumbnail/${id}/live"
+            base64_img=$(curl -s -H "Authorization: Bearer $TOKEN" -H "accept: image/jpeg" "$thumbnail_url" | base64)
+            if [ -n "$base64_img" ]; then
+              echo "<div><strong>$id</strong><br><img src='data:image/jpeg;base64,$base64_img'></div>" >> report.html
+            else
+              echo "<div><strong>$id</strong><br><span style='color:red'>Thumbnail not found</span></div>" >> report.html
+            fi
+          done
+
+          # 他のエンドポイント
+          for ep in "organizations" "sites"; do
             url="https://msapi.jp.arcules.com/v1/$ep"
             http_status=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" "$url")
             echo "<h2>$ep</h2>" >> report.html
             echo "<p>HTTP Status: $http_status</p>" >> report.html
-
             if [ "$http_status" -eq 200 ]; then
               json=$(curl -s -H "Authorization: Bearer $TOKEN" "$url" | jq '.')
               echo "<pre>$json</pre>" >> report.html
