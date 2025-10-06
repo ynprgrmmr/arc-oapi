@@ -1,6 +1,5 @@
-name: Arcules API StepCI Test
+name: Arcules API Direct Test
 
-# Push / PR / 手動実行でトリガー
 on:
   push:
     branches: [main]
@@ -9,25 +8,42 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-stepci-docker:
+  test-arcules-api:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Run StepCI tests in Docker
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq curl
+
+      - name: Get Arcules token
+        id: get_token
         run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            -e ARCULES_USER="${{ secrets.ARCULES_USER }}" \
-            -e ARCULES_PASS="${{ secrets.ARCULES_PASS }}" \
-            ghcr.io/stepci/stepci:latest \
-            run stepci.yml --report report.html
+          response=$(curl -s -X POST "https://msapi.jp.arcules.com/auth/token" \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"${{ secrets.ARCULES_USER }}\",\"password\":\"${{ secrets.ARCULES_PASS }}\"}")
+          echo "$response"
+          token=$(echo "$response" | jq -r '.access_token')
+          echo "token=$token" >> $GITHUB_OUTPUT
+
+      - name: Call Arcules APIs
+        id: call_apis
+        run: |
+          TOKEN=${{ steps.get_token.outputs.token }}
+          echo "<html><body><h1>Arcules API Test Report</h1><ul>" > report.html
+
+          for endpoint in "devices" "organizations" "sites" "thumbnails"; do
+            url="https://msapi.jp.arcules.com/$endpoint"
+            status=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" "$url")
+            echo "<li>$endpoint : HTTP $status</li>" >> report.html
+          done
+
+          echo "</ul></body></html>" >> report.html
 
       - name: Upload HTML report
         uses: actions/upload-artifact@v4
         with:
-          name: stepci-report
+          name: arcules-api-report
           path: report.html
