@@ -53,7 +53,7 @@ jobs:
 
           # devices の id を使って thumbnails を取得
           echo "<h2>Thumbnails</h2>" >> report.html
-          device_ids=$(echo "$devices_json" | jq -r '.[].id')
+          device_ids=$(echo "$devices_json" | jq -r '.devices[].id')
           for id in $device_ids; do
             thumbnail_url="https://msapi.jp.arcules.com/v1/thumbnail/${id}/live"
             base64_img=$(curl -s -H "Authorization: Bearer $TOKEN" -H "accept: image/jpeg" "$thumbnail_url" | base64)
